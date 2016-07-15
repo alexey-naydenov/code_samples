@@ -1,0 +1,113 @@
+\documentclass[11pt, a4paper]{article}
+\hoffset=-1in
+\voffset=-1in
+\textwidth=500pt
+\textheight=720pt
+
+\usepackage[T2A, T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english, russian]{babel}
+\usepackage{minted}
+\usepackage[nottoc, numbib]{tocbibind}
+\usepackage{hyperref}
+
+\begin{document}
+
+\title{Примеры кода}
+\author{Алексей Найденов}
+\date{Июль 2016}
+\maketitle
+\tableofcontents
+
+\section{Поиск строк в данных, разделенных на пакеты}
+
+Одной из проблем при разработке системы был поиск заранее заданного
+набора строк в данных, которые разбиты на блоки. При этом были
+следующие требования к программе: 
+
+\begin{itemize} 
+\item Данные разбиты на блоки (пакеты) произвольным образом. Обработку
+  необходимо произвести за один проход.
+\item Минимизировать объем сохраняемой информации.
+\item Строки заданы в момент компиляции, но набор может меняться.
+\item Необходимо добиться наибольшей производительности.
+\item Строки начинаются с фиксированного разделителя. Эту особенность
+  можно использовать для увеличения скорости работы.
+\end{itemize}
+
+Для решения задачи была использована машина состояний. Т.к. набор
+правил мог меняться в зависимости от требований, то код генерируется
+из описания правил при помощи python модуля cog. Для ускорения
+переходов между состояниями используется jump table и переходы на
+метки. Т.к. строки имеют одинаковые префиксы, то используются
+векторные инструкции для обнаружения начала. Поиск происходит за один
+проход, для хранения состояния используется 2 байта.
+
+В примере приведены правила для обнаружения ``Content-Type'' в http
+заголовке. Т.к. ``octet-stream'' может содержать различный тип данных,
+то используется вложенное сравнение. Поиск останавливается при
+обнаружении двойного перевода строки.
+
+\subsection{Пример кода.}
+\inputminted{cpp}{code/http_media.cc}
+
+\subsection{Программа генерации.}
+\inputminted{python}{code/code_generation.py}
+
+\section{Разбор разделенного на пакеты tls заголовка}
+
+Функция для разбора tls заголовка и выделения необходимой информации,
+которая способна прерывать и продолжать работу на границе
+пакетов. Т.к. заголовок представляет собой вложенную структуру с
+полями и массивами переменной длинны, то для хранения состояния
+применяется стек. Для ускорения переходов между состояниями
+используется jump table. Макросы позволяют улучшить читаемость кода.
+
+\inputminted{cpp}{code/tls_reader.h}
+\inputminted{cpp}{code/tls_reader.cc}
+
+\section{Hopscotch hash table с поддержкой ttl}
+
+Реализация hopscotch hash table \cite{hopscotch08}. Добавлена
+поддержка удаления элементов, к которым не было обращения в течении
+заданного промежутка времени.
+
+\inputminted{cpp}{code/hopscotch_ttl_hash.h}
+
+\section{Lock-free hash table}
+
+Реализация расширяемой lock-free hash table \cite{splitordered06}.
+
+\inputminted{cpp}{code/split_ordered.h}
+
+\section{Lock-free object allocator}
+
+Простой allocator объектов фиксированной длины на основе lock-free
+очереди \cite{queue96}. Используется в lock-free hash table.
+
+\inputminted{cpp}{code/object_allocator.h}
+
+\begin{thebibliography}{9}
+
+\bibitem{hopscotch08}
+  Maurice Herlihy and Nir Shavit and Moran Tzafrir,
+  \emph{Hopscotch Hashing},
+  Proceedings of the 22nd international symposium on Distributed Computing,
+  Springer-Verlag,
+  2008
+
+\bibitem{splitordered06}
+  Ori Shalev and Nir Shavit,
+  \emph{Split-Ordered Lists: Lock-Free Extensible Hash Tables},
+  Journal of the ACM, Vol. 53, No. 3,
+  2006.
+
+\bibitem{queue96}
+  Maged M. Michael and Michael L. Scott,
+  \emph{Simple, fast, and practical non-blocking and
+    blocking concurrent queue algorithms},
+  Symposium on Principles of Distributed Computing,
+  1996.
+
+\end{thebibliography}
+\end{document}
